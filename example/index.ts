@@ -4,11 +4,21 @@ import { Type, Static, TObject, TProperties } from '@sinclair/typebox'
 // npm start to run example
 // -----------------------------------------------
 
-type Vector = Static<typeof Vector>
-const Vector = Type.Object({
+
+const A = Type.Object({
     x: Type.Number(),
     y: Type.Number()
 })
+const B = Type.Object({
+    z: Type.Number(),
+    w: Type.Number()
+})
 
-console.log(Vector)
+const Intersect = Type.Intersect([A, B])
+type Intersect = Static<typeof Intersect>
+
+function test(x: Intersect) {
+    
+}
+
 
