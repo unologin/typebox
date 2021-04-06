@@ -110,10 +110,10 @@ export type TValue        = string | number | boolean
 
 export type TProperties                             = { [key: string]: TSchema }
 export type TTuple     <T extends TSchema[]>        = { kind: typeof TupleKind, type: 'array', items: [...T], additionalItems: false, minItems: number, maxItems: number } & CustomOptions
-export type TObject    <T extends TProperties>      = { kind: typeof ObjectKind, type: 'object', additionalProperties: false, properties: T, required?: string[] } & CustomOptions
+export type TObject    <T extends TProperties>      = { kind: typeof ObjectKind, type: 'object', additionalProperties?: false, properties: T, required?: string[] } & CustomOptions
 export type TIntersect <T extends TSchema[]>        = { kind: typeof IntersectKind, type: 'object', allOf: [...T], unevaluatedProperties: boolean } & CustomOptions
 export type TUnion     <T extends TSchema[]>        = { kind: typeof UnionKind, anyOf: [...T] } & CustomOptions
-export type TKeyOf     <T extends TKey[]>           = { kind: typeof KeyOfKind, enum: [...T] }
+export type TKeyOf     <T extends TKey[]>           = { kind: typeof KeyOfKind, enum: [...T] } & CustomOptions
 export type TDict      <T extends TSchema>          = { kind: typeof DictKind, type: 'object', additionalProperties: T } & DictOptions
 export type TArray     <T extends TSchema>          = { kind: typeof ArrayKind, type: 'array', items: T } & ArrayOptions
 export type TLiteral   <T extends TValue>           = { kind: typeof LiteralKind, const: T } & CustomOptions
@@ -287,7 +287,13 @@ export class TypeBuilder {
 
     /** `STANDARD` Creates an Intersect schema. */
     public Intersect<T extends TSchema[]>(items: [...T], options: CustomOptions = {}): TIntersect<T> {
-        return { ...options, kind: IntersectKind, type: 'object', allOf: items, unevaluatedProperties: false }
+        const allOf = items.map(item => {
+            if(item.kind !== ObjectKind) return item
+            const object = clone(item)
+            delete object.additionalProperties 
+            return object
+        }) as [...T]
+        return { ...options, kind: IntersectKind, type: 'object', allOf, unevaluatedProperties: false }
     }
 
     /** `STANDARD` Creates a Tuple schema. */
