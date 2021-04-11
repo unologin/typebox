@@ -1,25 +1,45 @@
 import { Type, Static, TObject, TProperties } from '@sinclair/typebox'
 
+import { ok, fail } from '../spec/schema/validate'
+
+// const A = {
+//     type: 'object',
+//     properties: { a: { type: 'string' } }
+// }
+
 // -----------------------------------------------
 // npm start to run example
 // -----------------------------------------------
 
 const A = Type.Object({
-    x: Type.Number(),
-    y: Type.Number()
+    a: Type.Number(),
+   
 })
 const B = Type.Object({
-    z: Type.Number(),
-    w: Type.Number()
+    b: Type.Number()
 })
+// const C = Type.Dict(
+//     Type.Number()
+// )
 
-const Intersect = Type.Intersect([A, B])
+const C = Type.Intersect([
+    Type.Object({ c: Type.Number() }),
+    Type.Object({ d: Type.Number() })
+])
+
+
+const Intersect = Type.Intersect([A, B, C])
 type Intersect = Static<typeof Intersect>
 
 console.log(JSON.stringify(Intersect, null, 2))
 
-function test(x: Intersect) {
-    
-}
+ok(Intersect, {
+    a: 1,
+    b: 2,
+    c: 1,
+    d: 2
+})
+
+
 
 

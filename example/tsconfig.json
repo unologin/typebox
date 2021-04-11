@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "strict": true,
+        "moduleResolution": "node",
         "baseUrl": ".",
         "paths": {
             "@sinclair/typebox": ["../src/typebox"]

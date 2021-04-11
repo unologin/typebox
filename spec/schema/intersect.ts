@@ -24,4 +24,34 @@ describe('Intersect', () => {
     fail(T, {c: true })
     fail(T, {a: 'hello', b: 42, c: true, d: [] })
   })
+
+  describe('Additional Properties', () => {
+    const A = Type.Object({
+      a: Type.String(),
+      b: Type.String(),
+    })
+    const B = Type.Object({
+      c: Type.String(),
+    })
+    const T = Type.Intersect([A, B])
+    
+    ok(T, { a: '1', b: '2', c: '3' })
+    fail(T, { a: '1', b: '2' })
+    fail(T, { a: '1', b: '2', c: '3', d: '4' })
+  })
+
+  describe('Duplicate Required', () => {
+    const A = Type.Object({
+      a: Type.String(),
+    })
+    const B = Type.Object({
+      a: Type.String(),
+      b: Type.String()
+    })
+    const T = Type.Intersect([A, B])
+
+    ok(T, { a: "1", b: "2" })
+    fail(T, { a: "1" })
+    fail(T, { a: "1", b: "2", c: "3" })
+  })
 })

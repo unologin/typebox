@@ -178,6 +178,7 @@ The following table outlines the TypeBox mappings between TypeScript and JSON sc
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Literal(42)     │ type T = 42                 │ const T = {                    │
 │                                │                             │    const: 42                   │
+│                                │                             │    type: 'number'              │
 │                                │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
@@ -228,9 +229,9 @@ The following table outlines the TypeBox mappings between TypeScript and JSON sc
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ enum Foo {                     │ enum Foo {                  │ const T = {                    │
-│   A,                           │   A,                        │    enum: [0, 1]                │
-│   B                            │   B                         │ }                              │
-│ }                              │ }                           │                                │
+│   A,                           │   A,                        │    enum: [0, 1],               │
+│   B                            │   B                         │    type: 'number'              │
+│ }                              │ }                           │ }                              │
 │                                │                             │                                │
 │ type T = Type.Enum(Foo)        │ type T = Foo                │                                │
 │                                │                             │                                │
@@ -245,9 +246,9 @@ The following table outlines the TypeBox mappings between TypeScript and JSON sc
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.KeyOf(          │ type T = keyof {            │ const T = {                    │
-│   Type.Object({                │   x: number,                │    enum: ['x', 'y']            │
-│     x: Type.Number(),          │   y: number                 │ }                              │
-│     y: Type.Number()           │ }                           │                                │
+│   Type.Object({                │   x: number,                │    enum: ['x', 'y'],           │
+│     x: Type.Number(),          │   y: number                 │    type: 'string'              │
+│     y: Type.Number()           │ }                           │ }                              │
 │   })                           │                             │                                │
 │ )                              │                             │                                │
 │   	                         │                             │                                │
@@ -563,7 +564,14 @@ console.log(JSON.stringify(ControllerInterface, null, 2))
 
 ### Validation
 
-TypeBox does not provide JSON schema validation out of the box and expects users to select an appropriate JSON schema validation library for their needs. TypeBox schemas should match JSON Schema draft 6 so any library capable of draft 6 should be fine. A good library to use for validation is [Ajv](https://www.npmjs.com/package/ajv). The following example shows setting up Ajv 7 to work with TypeBox.
+TypeBox does not provide JSON schema validation out of the box and expects users to select an appropriate JSON schema validation library for their needs. 
+
+TypeBox schemas are built to support.
+
+```
+"$schema": "https://json-schema.org/draft/2019-09/schema",
+```
+A good library to use for validation is [Ajv](https://www.npmjs.com/package/ajv). The following example shows setting up Ajv 7 to work with TypeBox.
 
 ```bash
 $ npm install ajv ajv-formats --save
@@ -572,7 +580,7 @@ $ npm install ajv ajv-formats --save
 ```typescript
 import { Type } from '@sinclair/typebox'
 import addFormats from 'ajv-formats'
-import Ajv from 'ajv'
+import Ajv from 'ajv/dist/2019'
 
 // Setup
 const ajv = addFormats(new Ajv(), [
