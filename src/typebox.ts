@@ -259,11 +259,17 @@ function clone(object: any): any {
     }, {}) : isArray(object) ? object.map((item: any) => clone(item)) : object
 }
 
-/** Recusively omits the given keys from the given object. */
-function omit(object: any, keys: string[]): any {
+/** 
+ * Recusively omits additionalProperties and unevaluatedProperties. This is used specifically
+ * for constructing intersection types where `unevaluatedProperties` manadate no constraints
+ * on sub schemas.
+ */
+function reset_contraints(object: any): any {
     return isObject(object) ? Object.keys(object).reduce<any>((acc, key) => {
-       return !keys.includes(key) ? { ...acc, [key]: clone(object[key] ) } : { ...acc }
-    }, {}) : isArray(object) ? object.map((item: any) => clone(item)) : object
+       if(key === 'additionalProperties' && object[key] === false) return { ... acc }
+       if(key === 'unevaluatedProperties') return { ... acc }
+       return { ...acc, [key]: reset_contraints(object[key]) }
+    }, {}) : isArray(object) ? object.map((item: any) => reset_contraints(item)) : object
 }
 
 // ------------------------------------------------------------------------
@@ -294,7 +300,7 @@ export class TypeBuilder {
 
     /** `STANDARD` Creates an Intersect schema. */
     public Intersect<T extends TSchema[]>(items: [...T], options: CustomOptions = {}): TIntersect<T> {
-        const allOf = items.map(item => omit(item, ['additionalProperties', 'unevaluatedProperties'])) as [...T]
+        const allOf = items.map(item => reset_contraints(item)) as [...T]
         return { ...options, kind: IntersectKind, type: 'object', allOf, unevaluatedProperties: false }
     }
 

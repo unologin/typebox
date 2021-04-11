@@ -28,16 +28,24 @@ const C = Type.Intersect([
 ])
 
 
-const Intersect = Type.Intersect([A, B, C])
-type Intersect = Static<typeof Intersect>
+const I = Type.Intersect([Type.Intersect([A, B, C]), Type.Dict(Type.String()) ])
+type I = Static<typeof I>
 
-console.log(JSON.stringify(Intersect, null, 2))
 
-ok(Intersect, {
+
+
+function test(x: I) {
+    
+    x.g = '1'
+}
+console.log(JSON.stringify(I, null, 2))
+
+ok(I, {
     a: 1,
     b: 2,
     c: 1,
-    d: 2
+    d: 2,
+
 })
 
 
