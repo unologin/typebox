@@ -346,9 +346,14 @@ export class TypeBuilder {
 
         const required = property_names.filter(name => !optional.includes(name) && properties[name])
         
-        return (required.length > 0) ?
-            { ...options, kind: ObjectKind, type: 'object', properties: removeHidden(properties), required } : 
-            { ...options, kind: ObjectKind, type: 'object', properties: removeHidden(properties) }
+        return { 
+            additionalProperties: false,
+            ...options,
+            kind: ObjectKind,
+            type: 'object',
+            properties: removeHidden(properties), 
+            required: required.length > 0 ? required : undefined,
+        };
     }
 
     /** `STANDARD` Creates an intersection schema of the given object schemas. */
