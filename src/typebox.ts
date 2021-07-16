@@ -144,7 +144,7 @@ export type TFunction    <T extends TSchema[], U extends TSchema> = { kind: type
 export type TPromise     <T extends TSchema>                      = { kind: typeof PromiseKind,     type: 'promise', item: T } & CustomOptions
 export type TUndefined      = { kind: typeof UndefinedKind, type: 'undefined' } & CustomOptions
 export type TVoid           = { kind: typeof VoidKind, type: 'void' } & CustomOptions
-export type TUserDefined<T> = { kind: typeof UserDefinedKind, type: 'user-defined', const: T }
+export type TUserDefined<T> = {}
 
 // ------------------------------------------------------------------------
 // Schema
