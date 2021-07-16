@@ -19,7 +19,8 @@
   },
   "scripts": {
     "clean": "hammer task clean",
-    "build": "hammer task build",
+    "hammer-build": "hammer task build",
+    "build": "cd src && tsc",
     "example": "hammer task example",
     "test": "hammer task spec"
   },
