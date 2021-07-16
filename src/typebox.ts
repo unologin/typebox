@@ -39,43 +39,6 @@ export type TOptional<T extends TSchema>         = T & { modifier: typeof Option
 export type TReadonly<T extends TSchema>         = T & { modifier: typeof ReadonlyModifier }
 export type THidden<T extends TSchema>           = T & { hidden: boolean }
 
-/**
- * Removes all properties that have a hidden-modifier.
- * Important: Does not clone props beforehand and therefore modifies the original.
- * 
- * @param props {TProperties}
- * @returns modified props
- */
-function removeHidden<T extends TProperties>(props: T) : T
-{
-    for(const [key, { hidden }] of Object.entries(props))
-    {
-        if(hidden)
-        {
-            delete props[key];
-        }
-    }
-
-    return props;
-}
-
-/**
- * TODO: There sure is a way to do this using just types.
- * 
- * @throws an error if the schema has the hidden-modifier.
- * @param schema {TSchema}
- * @returns true
- */
-function preventHidden({ hidden }: TSchema, parent: string)
-{
-    if (hidden)
-    {
-        throw new Error(`Child of ${parent} must not be hidden.`);
-    }
-
-    return true;
-}
-
 // ------------------------------------------------------------------------
 // Schema Standard
 // ------------------------------------------------------------------------
@@ -175,11 +138,13 @@ export const FunctionKind    = Symbol('FunctionKind')
 export const PromiseKind     = Symbol('PromiseKind')
 export const UndefinedKind   = Symbol('UndefinedKind')
 export const VoidKind        = Symbol('VoidKind')
+export const UserDefinedKind = Symbol('UserDefinedKind')
 export type TConstructor <T extends TSchema[], U extends TSchema> = { kind: typeof ConstructorKind, type: 'constructor', arguments: readonly [...T], returns: U } & CustomOptions
 export type TFunction    <T extends TSchema[], U extends TSchema> = { kind: typeof FunctionKind,    type: 'function', arguments: readonly [...T], returns: U } & CustomOptions
 export type TPromise     <T extends TSchema>                      = { kind: typeof PromiseKind,     type: 'promise', item: T } & CustomOptions
 export type TUndefined      = { kind: typeof UndefinedKind, type: 'undefined' } & CustomOptions
 export type TVoid           = { kind: typeof VoidKind, type: 'void' } & CustomOptions
+export type TUserDefined<T> = { kind: typeof UserDefinedKind, type: 'user-defined', const: T }
 
 // ------------------------------------------------------------------------
 // Schema
@@ -206,6 +171,7 @@ export type TSchema =
     | TPromise<any>
     | TUndefined
     | TVoid
+    | TUserDefined<any>
 
 // ------------------------------------------------------------------------
 // Utility Types
@@ -278,11 +244,24 @@ export type Static<T> =
     T extends TPromise<infer U>              ? StaticPromise<U>        :
     T extends TUndefined                     ? undefined               :
     T extends TVoid                          ? void                    :
+    T extends TUserDefined<infer U>          ? U :
     never
 
 // ------------------------------------------------------------------------
 // Utility
 // ------------------------------------------------------------------------
+
+/**
+ * Removes undefined elements from props.
+ * IMPORTANT: does NOT clone props
+ * @param props properties
+ * @retruns props
+ */
+function removeHidden<T extends TProperties>(props: T)
+{
+    Object.entries(props).map(([k,v]) => v === undefined && delete props[k])
+    return props;
+}
 
 function isObject(object: any) {
     return typeof object === 'object' && object !== null && !Array.isArray(object)
@@ -325,20 +304,24 @@ export class TypeBuilder {
         return { ...item, modifier: OptionalModifier }
     }
 
+    public UserDefined<R, T extends TSchema = any>(item: T): TUserDefined<R>
+    {
+        return item as unknown as TUserDefined<R>;
+    }
+
     /**
      * `EXPERIMENTAL` Causes the item not to be included in the schema.
      * @param item {TSchema}
      * @returns modified item
      */
-    public Hidden<T extends TSchema>(item: T): THidden<T> {
-        return this.Optional({ ...item, hidden: true });
+    public Hidden<T extends TSchema>(item: T) : T {
+        // @ts-ignore
+        return undefined;
     }
 
     /** `STANDARD` Creates a Tuple schema. */
     public Tuple<T extends TSchema[]>(items: [...T], options: CustomOptions = {}): TTuple<T> {
         
-        items.map((i) => preventHidden(i, 'tuple'));
-
         const additionalItems = false
         const minItems = items.length
         const maxItems = items.length
@@ -347,10 +330,13 @@ export class TypeBuilder {
 
     /** `STANDARD` Creates a `object` schema with the given properties. */
     public Object<T extends TProperties>(properties: T, options: ObjectOptions = {}): TObject<T> {
+        
         const property_names = Object.keys(properties)
+        
         const optional = property_names.filter(name => {
             const candidate = properties[name] as TModifier
-            return (candidate.modifier &&
+            return (
+                candidate !== undefined && 'modifier' in candidate &&
                 (
                     candidate.modifier === OptionalModifier ||
                     candidate.modifier === ReadonlyOptionalModifier
@@ -358,9 +344,9 @@ export class TypeBuilder {
             )
         })
 
-        const required_names = property_names.filter(name => !optional.includes(name))
-        const required = (required_names.length > 0) ? required_names : undefined
-        return (required) ?
+        const required = property_names.filter(name => !optional.includes(name) && properties[name])
+        
+        return (required.length > 0) ?
             { ...options, kind: ObjectKind, type: 'object', properties: removeHidden(properties), required } : 
             { ...options, kind: ObjectKind, type: 'object', properties: removeHidden(properties) }
     }
@@ -372,8 +358,8 @@ export class TypeBuilder {
 
         const required   = distinct(
             items.reduce((acc, object) => 
-                (preventHidden(object, 'intersect') && object['required']) ?
-                    [ ...acc, ...object['required'] ] :
+                (object.required) ?
+                    [ ...acc, ...object.required ] :
                     acc, [] as string[]
                 )
         )
@@ -390,14 +376,14 @@ export class TypeBuilder {
 
     /** `STANDARD` Creates a `{ [key: string]: T }` schema. */
     public Dict<T extends TSchema>(item: T, options: DictOptions = {}): TDict<T> {
-        item.modifier && preventHidden(item, 'dict');
+        
         const additionalProperties = item
         return { ...options, kind: DictKind, type: 'object', additionalProperties }
     }
 
     /** `STANDARD` Creates an `Array<T>` schema. */
     public Array<T extends TSchema>(items: T, options: ArrayOptions = {}): TArray<T> {
-        items.modifier && preventHidden(items, 'array');
+        
         return { ...options, kind: ArrayKind, type: 'array', items }
     }
 

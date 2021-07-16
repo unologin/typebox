@@ -28,15 +28,6 @@ describe('Modifier', () => {
     // check deserialized
     assert.strictEqual(P.properties.a['modifier'], undefined)
     assert.strictEqual(P.properties.b['modifier'], undefined)
-  });
-
-  it('Type.Hidden can only be used on Objects', () => 
-  {
-    const hidden = Type.Hidden(Type.Object({}));
-
-    expect(() => Type.Array(hidden)).to.throw();
-    expect(() => Type.Tuple([Type.String(), hidden])).to.throw();
-    expect(() => Type.Intersect([Type.Object({}), hidden])).to.throw();
-    expect(() => Type.Dict(hidden)).to.throw();
+    
   });
 })
