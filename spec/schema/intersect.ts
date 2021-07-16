@@ -1,4 +1,5 @@
 import { Type } from '@sinclair/typebox'
+import { expect } from 'chai'
 import { ok, fail } from './validate'
 
 describe('Intersect', () => {
@@ -36,6 +37,37 @@ describe('Intersect', () => {
     ok(T, { a: '1', b: '2', c: '3' })
     fail(T, { a: '1', b: '2' })
     fail(T, { a: '1', b: '2', c: '3', d: '4' })
+  })
+
+  describe('additionalProperties', () => {
+
+    const A = Type.Object({
+      a: Type.String(),
+    })
+
+    const B = Type.Object({
+      a: Type.String(),
+      b: Type.String()
+    },
+    {
+      additionalProperties: true
+    })
+
+    const C = Type.Object({
+      a: Type.String(),
+      b: Type.String()
+    },
+    {
+      additionalProperties: true
+    })
+
+    const T = Type.Intersect([A,B]);
+    const T2 = Type.Intersect([B,C]);
+
+    expect(T.additionalProperties).to.be.false;
+
+    expect(T2.additionalProperties).to.be.true;
+
   })
 
   describe('Duplicate Required', () => {

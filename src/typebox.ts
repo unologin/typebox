@@ -369,9 +369,21 @@ export class TypeBuilder {
                 )
         )
 
-        return (required.length > 0)
-            ? { ...options, type, kind: ObjectKind, properties, required }
-            : { ...options, type, kind: ObjectKind, properties }
+        // allow additional properties if all items allow it
+        const additionalProperties = items.reduce<boolean>(
+            (acc, { additionalProperties }) => (acc = acc && (additionalProperties !== false)),
+            // true by default
+            true,
+        );
+
+        return {
+            additionalProperties,
+            ...options,
+            type,
+            kind: ObjectKind,
+            properties,
+            required: required.length > 0 ? required : undefined,
+        }
     }
     
     /** `STANDARD` Creates a Union schema. */
