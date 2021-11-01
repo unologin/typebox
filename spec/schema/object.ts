@@ -1,93 +1,94 @@
-import { deepStrictEqual, strictEqual } from 'assert'
-import { Type } from '@sinclair/typebox'
+import { Type } from '../../src/typebox'
 import { ok, fail } from './validate'
 
 describe('Object', () => {
-  it('Object', () => {
-    const T = Type.Object({
-      a: Type.Number(),
-      b: Type.String(),
-      c: Type.Boolean(),
-      d: Type.Array(Type.Number()),
-      e: Type.Object({ x: Type.Number(), y: Type.Number() })
+
+    it('Should not validate a number', () => {
+        const T = Type.Object({})
+        fail(T, 42)
     })
-    ok(T, { a: 10, b: '', c: true, d: [1, 2, 3], e: { x: 10, y: 20 } })
-    fail(T, {})
-    fail(T, [])
-    fail(T, 'hello')
-    fail(T, true)
-    fail(T, 123)
-    fail(T, null)
-  })
 
-  it('Optional', () => {
-    const T = Type.Object({
-      a: Type.Optional(Type.Number()),
-      b: Type.Optional(Type.String()),
-      c: Type.Optional(Type.Boolean()),
-      d: Type.Optional(Type.Array(Type.Number())),
-      e: Type.Optional(Type.Object({ x: Type.Number(), y: Type.Number() }))
-    }, { additionalProperties: false })
+    it('Should not validate a string', () => {
+        const T = Type.Object({})
+        fail(T, 'hello')
+    })
 
-    ok(T, { a: 10, b: '', c: true, d: [1, 2, 3], e: { x: 10, y: 20 } })
-    ok(T, {})
+    it('Should not validate a boolean', () => {
+        const T = Type.Object({})
+        fail(T, true)
+    })
+    
+    it('Should not validate a null', () => {
+        const T = Type.Object({})
+        fail(T, null)
+    })
 
-    fail(T, { z: null }) // should this fail?
-    fail(T, [])
-    fail(T, 'hello')
-    fail(T, true)
-    fail(T, 123)
-    fail(T, null)
-  })
+    it('Should not validate an array', () => {
+        const T = Type.Object({})
+        fail(T, [1, 2])
+    })
 
-  it('Readonly', () => {
-    const T = Type.Object({
-      a: Type.Readonly(Type.Number()),
-      b: Type.Readonly(Type.String()),
-      c: Type.Readonly(Type.Boolean()),
-      d: Type.Readonly(Type.Array(Type.Number())),
-      e: Type.Readonly(Type.Object({ x: Type.Number(), y: Type.Number() }))
-    }, { additionalProperties: false })
+    it('Should validate with correct property values', () => {
+        const T = Type.Object({
+            a: Type.Number(),
+            b: Type.String(),
+            c: Type.Boolean(),
+            d: Type.Array(Type.Number()),
+            e: Type.Object({ x: Type.Number(), y: Type.Number() })
+        })
+        ok(T, {
+            a: 10,
+            b: 'hello',
+            c: true,
+            d: [1, 2, 3],
+            e: { x: 10, y: 20 }
+        })
+    })
 
-    ok(T, { a: 10, b: '', c: true, d: [1, 2, 3], e: { x: 10, y: 20 } })
+    it('Should not validate with incorrect property values', () => {
+        const T = Type.Object({
+            a: Type.Number(),
+            b: Type.String(),
+            c: Type.Boolean(),
+            d: Type.Array(Type.Number()),
+            e: Type.Object({ x: Type.Number(), y: Type.Number() })
+        })
+        fail(T, {
+            a: 'not a number', // error
+            b: 'hello',
+            c: true,
+            d: [1, 2, 3],
+            e: { x: 10, y: 20 }
+        })
+    })
 
-    fail(T, {})
-    fail(T, [])
-    fail(T, 'hello')
-    fail(T, true)
-    fail(T, 123)
-    fail(T, null)
-  })
+    it('Should not allow additionalProperties by default', () => {
+        const T = Type.Object({
+            a: Type.Number(),
+            b: Type.String()
+        })
+        fail(T, {
+            a: 1,
+            b: 'hello',
+            c: true
+        })
+    })
 
-  describe('Required', () => {
-    it('Contains all non-optional properties', () => {
-      const T = Type.Object({
-        a: Type.String(),
-        b: Type.Optional(Type.String()),
-        c: Type.String(),
-      });
+    it('Should allow additionalProperties if additionalProperties is true', () => {
+        const T = Type.Object({
+            a: Type.Number(),
+            b: Type.String()
+        }, { additionalProperties: true })
+        ok(T, {
+            a: 1,
+            b: 'hello',
+            c: true
+        })
+    })
 
-      deepStrictEqual(T.required, ['a', 'c']);
-    });
-
-    it(`The 'required' array property is omitted when all properties are optional`, () => {
-      const T = Type.Object({
-        a: Type.Optional(Type.String()),
-        b: Type.Optional(Type.String()),
-        c: Type.Optional(Type.String()),
-      })
-      strictEqual(T.required, undefined);
-    });
-  });
-
-  describe('Additional Properties', () => {
-    const T = Type.Object({
-      a: Type.String(),
-      b: Type.String(),
-      c: Type.String(),
-    }, { additionalProperties: false });
-    ok(T, { a: '1', b: '2', c: '3' })
-    fail(T, { a: '1', b: '2' })
-    fail(T, { a: '1', b: '2', c: '3', d: '4' })
-  })
+    it('Should not allow properties for an empty object when additionalProperties is false', () => {
+        const T = Type.Object({}, { additionalProperties: false })
+        ok(T, {})
+        fail(T, { a: 10 })
+    })
 })

@@ -1,4 +1,4 @@
-import { Type, Static } from '@sinclair/typebox'
+import { Type, Static } from '../../src/typebox'
 
 describe('UserDefined should change type', () => 
 {

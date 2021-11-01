@@ -1,4 +1,4 @@
-import { Type, } from '@sinclair/typebox'
+import { Type, } from '../../src/typebox'
 
 import { expect } from 'chai';
 

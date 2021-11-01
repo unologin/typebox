@@ -12,8 +12,16 @@
 
 ## Install
 
+#### Node
+
 ```bash
 $ npm install @sinclair/typebox --save
+```
+
+#### Deno
+
+```typescript
+import { Static, Type } from 'https://deno.land/x/typebox/src/typebox.ts'
 ```
 
 ## Usage
@@ -21,20 +29,20 @@ $ npm install @sinclair/typebox --save
 ```typescript
 import { Static, Type } from '@sinclair/typebox'
 
-const T = Type.String()   // const T = { "type": "string" }
+const T = Type.String()     // const T = { "type": "string" }
 
-type T = Static<typeof T> // type T = string
+type T = Static<typeof T>   // type T = string
 ```
 
 <a name="Overview"></a>
 
 ## Overview
 
-TypeBox is a type builder library that creates in-memory JSON Schema objects that can be statically resolved to TypeScript types. The schemas produced by this library are built to match the static type checking rules of the TypeScript compiler. TypeBox allows one to create a single unified type that can be both statically checked by the TypeScript compiler and runtime asserted using standard JSON schema validation.
+TypeBox is a library that builds in-memory JSON Schema objects that can be statically resolved to TypeScript types. The schemas produced by this library are designed to match the static type checking rules of the TypeScript compiler. TypeBox allows one to create a unified type that can be statically checked by the TypeScript compiler and runtime asserted using standard JSON Schema validation.
 
-TypeBox can be used as a simple tool to build up complex schemas or integrated into RPC or REST services to help validate JSON data received over the wire. TypeBox does not provide any JSON schema validation. Please use libraries such as [AJV](https://www.npmjs.com/package/ajv) to validate schemas built with this library.
+TypeBox can be used as a simple tool to build up complex schemas or integrated into RPC or REST services to help validate JSON data received over the wire. TypeBox does not provide any JSON schema validation. Please use libraries such as AJV to validate schemas built with this library.
 
-Requires TypeScript 4.0.3 and above.
+Requires TypeScript 4.3.5 and above.
 
 License MIT
 
@@ -45,12 +53,13 @@ License MIT
 - [Types](#Types)
 - [Modifiers](#Modifiers)
 - [Options](#Options)
+- [Generic Types](#Generic-Types)
 - [Reference Types](#Reference-Types)
 - [Recursive Types](#Recursive-Types)
 - [Extended Types](#Extended-Types)
 - [Strict](#Strict)
-- [Interfaces](#Interfaces)
 - [Validation](#Validation)
+- [OpenAPI](#OpenAPI)
 
 <a name="Example"></a>
 
@@ -60,7 +69,7 @@ The following demonstrates TypeBox's general usage.
 
 ```typescript
 
-import { Type, Static } from '@sinclair/typebox'
+import { Static, Type } from '@sinclair/typebox'
 
 //--------------------------------------------------------------------------------------------
 //
@@ -68,7 +77,7 @@ import { Type, Static } from '@sinclair/typebox'
 //
 //--------------------------------------------------------------------------------------------
 
-type Record = {
+type T = {
     id: string,
     name: string,
     timestamp: number
@@ -80,7 +89,7 @@ type Record = {
 //
 //--------------------------------------------------------------------------------------------
 
-const Record = Type.Object({        // const Record = {
+const T = Type.Object({             // const T = {
     id: Type.String(),              //   type: 'object',
     name: Type.String(),            //   properties: { 
     timestamp: Type.Integer()       //      id: { 
@@ -106,7 +115,7 @@ const Record = Type.Object({        // const Record = {
 //
 //--------------------------------------------------------------------------------------------
 
-type Record = Static<typeof Record> // type Record = {
+type T = Static<typeof T>           // type T = {
                                     //    id: string,
                                     //    name: string,
                                     //    timestamp: number
@@ -118,12 +127,13 @@ type Record = Static<typeof Record> // type Record = {
 //
 //--------------------------------------------------------------------------------------------
 
-function receive(record: Record) {      // ... as a type
-    if(JSON.validate(Record, record)) { // ... as a schema
+function receive(value: T) {      // ... as a Type
+
+    if(JSON.validate(T, value)) { // ... as a Schema
+
         // ok...
     }
 }
-
 ```
 
 <a name="Types"></a>
@@ -188,14 +198,6 @@ The following table outlines the TypeBox mappings between TypeScript and JSON sc
 │                                │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
-│ const T = Type.Dict(           │ type T = {                  │ const T = {                    │
-│    Type.Number()               │    [key: string] : number   │    type: 'object'              │
-│ )                              │ }                           │    additionalProperties: {     │
-│   	                         │                             │      type: 'number'            │
-│   	                         │                             │    }                           │
-│   	                         │                             │ }                              │
-│   	                         │                             │                                │
-├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Object({        │ type T = {                  │ const T = {                    │
 │   x: Type.Number(),            │    x: number,               │   type: 'object',              │
 │   y: Type.Number()             │    y: number                │   properties: {                │
@@ -222,16 +224,27 @@ The following table outlines the TypeBox mappings between TypeScript and JSON sc
 │   	                         │                             │    additionalItems: false,     │
 │   	                         │                             │    minItems: 2,                │
 │   	                         │                             │    maxItems: 2,                │
-│   	                         │                             │ }                              |
+│   	                         │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ enum Foo {                     │ enum Foo {                  │ const T = {                    │
-│   A,                           │   A,                        │    enum: [0, 1],               │
-│   B                            │   B                         │    type: 'number'              │
-│ }                              │ }                           │ }                              │
+│   A,                           │   A,                        │   anyOf: [{                    │
+│   B                            │   B                         │     type: 'number',            │
+│ }                              │ }                           │     const: 0                   │
+│                                │                             │   }, {                         │
+│ const T = Type.Enum(Foo)       │ type T = Foo                │     type: 'number',            │
+│                                │                             │     const: 1                   │
+│                                │                             │   }]                           │
+│                                │                             │ }                              │
 │                                │                             │                                │
-│ type T = Type.Enum(Foo)        │ type T = Foo                │                                │
-│                                │                             │                                │
+├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
+│ const T = Type.KeyOf(          │ type T = keyof {            │ const T = {                    │
+│   Type.Object({                │   x: number,                │    enum: ['x', 'y'],           │
+│     x: Type.Number(),          │   y: number                 │    type: 'string'              │
+│     y: Type.Number()           │ }                           │ }                              │
+│   })                           │                             │                                │
+│ )                              │                             │                                │
+│   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Union([         │ type T = string | number    │ const T = {                    │
 │   Type.String(),               │                             │    anyOf: [{                   │
@@ -242,27 +255,35 @@ The following table outlines the TypeBox mappings between TypeScript and JSON sc
 │                                │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
-│ const T = Type.KeyOf(          │ type T = keyof {            │ const T = {                    │
-│   Type.Object({                │   x: number,                │    enum: ['x', 'y'],           │
-│     x: Type.Number(),          │   y: number                 │    type: 'string'              │
-│     y: Type.Number()           │ }                           │ }                              │
-│   })                           │                             │                                │
-│ )                              │                             │                                │
+│ const T = Type.Intersect([     │ type T = {                  │ const T = {                    │
+│    Type.Object({               │    x: number                │    allOf: [{                   │
+│       x: Type.Number()         │ } & {                       │       type: 'object',          │
+│    }),                         │    y: number                │       properties: {            │
+│    Type.Object({               │ }                           │          a: {                  │
+│       y: Type.Number()         │                             │            type: 'number'      │    
+│   })                           │                             │          }                     │
+│ })                             │                             │       },                       │
+│                                │                             │       required: ['a']          │
+│                                │                             │    }, {                        │
+│                                │                             │       type: 'object',          │
+│                                │                             │       properties: {            │
+│                                │                             │          b: {                  │
+│   	                         │                             │            type: 'number'      │
+│   	                         │                             │          }                     │
+│   	                         │                             │       },                       │
+│   	                         │                             │       required: ['b']          │
+│   	                         │                             │    }]                          │
+│   	                         │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
-│ const T = Type.Intersect([     │ type T = {                  │ const T = {                    │
-│    Type.Object({               │    x: number                │    type: 'object',             │
-│       x: Type.Number()         │ } & {                       │    properties: {               │
-│    }),                         │    y: number                │      x: {                      │
-│    Type.Object({               │ }                           │        type: 'number'          │
-│       y: Type.Number()         │                             │      },                        │
-│   })                           │                             │      y: {                      │
-│ })                             │                             │        type: 'number'          │
-│                                │                             │      }                         │
-│                                │                             │    },                          │
-│                                │                             │    required: ['x', 'y']        │
-│                                │                             │ }                              │
-│                                │                             │                                │
+│ const T = Type.Record(         │ type T = {                  │ const T = {                    │
+│    Type.String(),              │    [key: string]: number    │    type: 'object',             │
+│    Type.Number()               │ }                           │    patternProperties: {        │
+│ ) 	                         │                             │      '^.*$': {                 │
+│   	                         │                             │         type: 'number'         │
+│   	                         │                             │      }                         │
+│   	                         │                             │    }                           │
+│   	                         │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Partial(        │ type T = Partial<{          │ const T = {                    │
@@ -287,7 +308,7 @@ The following table outlines the TypeBox mappings between TypeScript and JSON sc
 │          Type.Number()         │                             │     y: {                       │
 │       )                        │                             │        type: 'number'          │
 │    })                          │                             │     }                          │
-│ )                              │                             │   }                            │
+│ )                              │                             │   },                           │
 │                                │                             │   required: ['x', 'y']         │
 │                                │                             │ }                              │
 │   	                         │                             │                                │
@@ -363,7 +384,7 @@ TypeBox provides modifiers that can be applied to an objects properties. This al
 
 ### Options
 
-You can pass additional JSON schema properties on the last argument of any given type. The following are some examples.
+You can pass additional JSON schema options on the last argument of any given type. The following are some examples.
 
 ```typescript
 // string must be an email
@@ -375,16 +396,62 @@ const T = Type.Number({ multipleOf: 2 })
 // array must have at least 5 integer values
 const T = Type.Array(Type.Integer(), { minItems: 5 })
 ```
+<a name="Generic-Types"></a>
+
+### Generic Types
+
+Generic types can be created using functions. The following creates a generic `Nullable<T>` type. 
+
+```typescript
+import { Type, Static, TSchema } from '@sinclair/typebox'
+
+// type Nullable<T> = T | null
+
+const Nullable = <T extends TSchema>(type: T) => Type.Union([type, Type.Null()])
+
+const T = Nullable(Type.String())            // const T = {
+                                             //   "anyOf": [{
+                                             //      type: 'string'
+                                             //   }, {
+                                             //      type: 'null'
+                                             //   }]
+                                             // }
+
+type T = Static<typeof T>                    // type T = string | null
+
+const U = Nullable(Type.Number())            // const U = {
+                                             //   "anyOf": [{
+                                             //      type: 'number'
+                                             //   }, {
+                                             //      type: 'null'
+                                             //   }]
+                                             // }
+
+type U = Static<typeof U>                    // type U = number | null
+```
 
 <a name="Reference-Types"></a>
 
 ### Reference Types
 
-Type referencing can be useful to help reduce schema duplication when composing complex schemas. TypeBox allows for type referencing with the `Type.Box(...)` and `Type.Ref(...)` functions. The `Type.Box(...)` function creates a container for set of common related types and the `Type.Ref(...)` function allows referencing into the box. The following shows a set of common math types contained within a box, and a vertex structure that references those types.
+Types can be referenced with `Type.Ref(...)`. To reference a type, the target type must specify an `$id`.
 
 ```typescript
-const Math3D = Type.Box('math3d', {           //  const Math3D = {
-  Vector4: Type.Object({                      //    $id: 'math3d',
+const T = Type.String({ $id: 'T' })          // const T = {
+                                             //    $id: 'T',
+                                             //    type: 'string'
+                                             // }
+                                             
+const R = Type.Ref(T)                        // const R = {
+                                             //    $ref: 'T'
+                                             // }
+```
+
+It can be helpful to organize shared referenced types under a common namespace. The `Type.Box(...)` function can be used to create a shared definition container for related types. The following creates a `Math3D` container and a `Vertex` structure that references types in the container.
+
+```typescript
+const Math3D = Type.Box({                     //  const Math3D = {
+  Vector4: Type.Object({                      //    $id: 'Math3D',
     x: Type.Number(),                         //    definitions: {
     y: Type.Number(),                         //      Vector4: {
     z: Type.Number(),                         //        type: 'object',
@@ -399,7 +466,7 @@ const Math3D = Type.Box('math3d', {           //  const Math3D = {
     x: Type.Number(),                         //      Vector3: {
     y: Type.Number()                          //        type: 'object',
   })                                          //        properties: {
-})                                            //          x: { 'type': 'number' },
+}, { $id: 'Math3D' })                         //          x: { 'type': 'number' },
                                               //          y: { 'type': 'number' },
                                               //          z: { 'type': 'number' }
                                               //        },
@@ -419,9 +486,9 @@ const Math3D = Type.Box('math3d', {           //  const Math3D = {
 const Vertex = Type.Object({                  //  const Vertex = {
     position: Type.Ref(Math3D, 'Vector4'),    //    type: 'object',
     normal:   Type.Ref(Math3D, 'Vector3'),    //    properties: {
-    uv:       Type.Ref(Math3D, 'Vector2')     //      position: { $ref: 'math3d#/definitions/Vector4' },
-})                                            //      normal: { $ref: 'math3d#/definitions/Vector3' },
-                                              //      uv: { $ref: 'math3d#/definitions/Vector2' }
+    uv:       Type.Ref(Math3D, 'Vector2')     //      position: { $ref: 'Math3D#/definitions/Vector4' },
+})                                            //      normal: { $ref: 'Math3D#/definitions/Vector3' },
+                                              //      uv: { $ref: 'Math3D#/definitions/Vector2' }
                                               //    },
                                               //    required: ['position', 'normal', 'uv']
                                               //  }
@@ -431,13 +498,13 @@ const Vertex = Type.Object({                  //  const Vertex = {
 
 ### Recursive Types
 
-TypeBox provides rudimentary support for recursive types. This is handled via the `Type.Rec(...)` method. The following creates a `Node` type that contains an array of inner `nodes`. Please note that due to current recursion limits on TypeScript inference, it's currently not possible for TypeBox to statically infer for recursive types. Instead TypeBox will resolve inner recursive types as `any`.
+Recursive types can be created with the `Type.Rec(...)` function. The following creates a `Node` type that contains an array of inner Nodes. Note that due to current restrictions on TypeScript inference, it is not possible for TypeBox to statically infer for recursive types. TypeBox will infer the inner recursive type as `any`.
 
 ```typescript
 const Node = Type.Rec(Self => Type.Object({   // const Node = {
   id:    Type.String(),                       //   $id: 'Node',
   nodes: Type.Array(Self),                    //   $ref: 'Node#/definitions/self',
-}), 'Node')                                   //   definitions: {
+}), { $id: 'Node' })                          //   definitions: {
                                               //     self: {
                                               //       type: 'object',
                                               //       properties: {
@@ -453,7 +520,7 @@ const Node = Type.Rec(Self => Type.Object({   // const Node = {
                                               //      }
                                               //    }
                                               // }
-											  
+
 type Node = Static<typeof Node>               // type Node = {
                                               //   id: string
                                               //   nodes: any[]
@@ -478,7 +545,7 @@ In addition to JSON schema types, TypeBox provides several extended types that a
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Constructor([   │ type T = new (              │ const T = {                    │
-|    Type.String(),              │  arg0: string,              │   type: 'constructor'          │
+│    Type.String(),              │  arg0: string,              │   type: 'constructor'          │
 │    Type.Number(),              │  arg1: number               │   arguments: [{                │
 │ ], Type.Boolean())             │ ) => boolean                │      type: 'string'            │
 │                                │                             │   }, {                         │
@@ -504,21 +571,21 @@ In addition to JSON schema types, TypeBox provides several extended types that a
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Promise(        │ type T = Promise<string>    │ const T = {                    │
-|    Type.String()               │                             │   type: 'promise',             │
-| )                              │                             │   item: {                      │
+│    Type.String()               │                             │   type: 'promise',             │
+│ )                              │                             │   item: {                      │
 │                                │                             │      type: 'string'            │
 │                                │                             │   }                            │
 │                                │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Undefined()     │ type T = undefined          │ const T = {                    │
-|                                │                             │   type: 'undefined'            │
-|                                │                             │ }                              │
+│                                │                             │   type: 'undefined'            │
+│                                │                             │ }                              │
 │   	                         │                             │                                │
 ├────────────────────────────────┼─────────────────────────────┼────────────────────────────────┤
 │ const T = Type.Void()          │ type T = void               │ const T = {                    │
-|                                │                             │   type: 'void'                 │
-|                                │                             │ }                              │
+│                                │                             │   type: 'void'                 │
+│                                │                             │ }                              │
 │   	                         │                             │                                │
 └────────────────────────────────┴─────────────────────────────┴────────────────────────────────┘
 ```
@@ -552,118 +619,34 @@ const U = Type.Strict(T)                      // const U = {
                                               // }
 ```
 
-<a name="Interfaces"></a>
-
-### Interfaces
-
-It is possible to create interfaces from TypeBox types. Consider the following code that creates a `ControllerInterface` type that has a single function `createRecord(...)`. The following is how one might approach this in TypeScript.
-
-```typescript
-interface CreateRecordRequest {
-    data: string
-}
-
-interface CreateRecordResponse {
-    id: string
-}
-
-interface ControllerInterface {
-    createRecord(record: CreateRecordRequest): Promise<CreateRecordResponse>
-}
-
-class Controller implements ControllerInterface {
-    async createRecord(record: CreateRecordRequest): Promise<CreateRecordResponse> {
-        return { id: '1' }
-    }
-}
-```
-The following is the TypeBox equivalent.
-```typescript
-import { Type, Static } from '@sinclair/typebox'
-
-type CreateRecordRequest = Static<typeof CreateRecordRequest>
-const CreateRecordRequest = Type.Object({
-    data: Type.String()
-})
-type CreateRecordResponse = Static<typeof CreateRecordResponse>
-const CreateRecordResponse = Type.Object({
-    id: Type.String()
-})
-
-type ControllerInterface = Static<typeof ControllerInterface>
-const ControllerInterface = Type.Object({
-    createRecord: Type.Function([CreateRecordRequest], Type.Promise(CreateRecordResponse))
-})
-
-class Controller implements ControllerInterface {
-    async createRecord(record: CreateRecordRequest): Promise<CreateRecordResponse> {
-        return { id: '1' }
-    }
-}
-```
-Because TypeBox encodes the type information as JSON schema, it now becomes possible to reflect on the JSON schema to produce sharable metadata that can be used as machine readable documentation.
-```typescript
-
-console.log(JSON.stringify(ControllerInterface, null, 2))
-// outputs:
-//
-// {
-//   "type": "object",
-//   "properties": {
-//     "createRecord": {
-//       "type": "function",
-//       "arguments": [
-//         {
-//           "type": "object",
-//           "properties": {
-//             "data": {
-//               "type": "string"
-//             }
-//           },
-//           "required": [
-//             "data"
-//           ]
-//         }
-//       ],
-//       "returns": {
-//         "type": "promise",
-//         "item": {
-//           "type": "object",
-//           "properties": {
-//             "id": {
-//               "type": "string"
-//             }
-//           },
-//           "required": [
-//             "id"
-//           ]
-//         }
-//       }
-//     }
-//   },
-//   "required": [
-//     "createRecord"
-//   ]
-// }
-```
-
 <a name="Validation"></a>
 
 ### Validation
 
-TypeBox does not provide JSON schema validation out of the box and expects users to select an appropriate JSON schema validation library for their needs. TypeBox schemas should match JSON Schema draft 6 so any library capable of draft 6 should be fine. A good library to use for validation is [Ajv](https://www.npmjs.com/package/ajv). The following example shows setting up Ajv 7 to work with TypeBox.
+TypeBox does not provide JSON schema validation functionality, so users will need to select an appropriate JSON Schema validator for their language or framework. TypeBox targets JSON Schema draft `2019-09` so any validator capable of draft `2019-09` should be fine. A good library to use for validation in JavaScript environments is [AJV](https://www.npmjs.com/package/ajv). The following example shows setting up AJV 7 to work with TypeBox.
 
 ```bash
 $ npm install ajv ajv-formats --save
 ```
 
 ```typescript
-import { Type } from '@sinclair/typebox'
-import addFormats from 'ajv-formats'
-import Ajv from 'ajv'
+//--------------------------------------------------------------------------------------------
+//
+// Import the 2019 compliant validator from AJV
+//
+//--------------------------------------------------------------------------------------------
 
-// Setup
-const ajv = addFormats(new Ajv(), [
+import { Type }   from '@sinclair/typebox'
+import addFormats from 'ajv-formats'
+import Ajv        from 'ajv/dist/2019'
+
+//--------------------------------------------------------------------------------------------
+//
+// Setup AJV validator with the following options and formats
+//
+//--------------------------------------------------------------------------------------------
+
+const ajv = addFormats(new Ajv({}), [
     'date-time', 
     'time', 
     'date', 
@@ -681,20 +664,125 @@ const ajv = addFormats(new Ajv(), [
 ]).addKeyword('kind')
   .addKeyword('modifier')
 
-// TypeBox
+//--------------------------------------------------------------------------------------------
+//
+// Create a TypeBox type
+//
+//--------------------------------------------------------------------------------------------
+
 const User = Type.Object({
-    name: Type.String(),
-    email: Type.String({ format: 'email' })
-})
+    userId: Type.String({ format: 'uuid' }),
+    email:  Type.String({ format: 'email' }),
+    online: Type.Boolean(),
+}, { additionalProperties: false })
 
-// Validate
-const isValid = ajv.validate(User, { 
-    name: 'dave', 
-    email: 'dave@domain.com' 
-})
+//--------------------------------------------------------------------------------------------
+//
+// Validate Data
+//
+//--------------------------------------------------------------------------------------------
 
-//
-// isValid -> true
-//
+const ok = ajv.validate(User, { 
+    userId: '68b4b1d8-0db6-468d-b551-02069a692044', 
+    email:  'dave@domain.com',
+    online:  true
+}) // -> ok
 ```
 
+#### Reference Types
+
+Referenced types can be added to AJV with the `ajv.addSchema(...)` function. The following moves the `userId` and `email` property types into a `Type.Box(...)` and registers the box with AJV.
+
+```typescript
+//--------------------------------------------------------------------------------------------
+//
+// Shared Types
+//
+//--------------------------------------------------------------------------------------------
+
+const Shared = Type.Box({
+  UserId: Type.String({ format: 'uuid' }),
+  Email:  Type.String({ format: 'email' })
+}, { $id: 'Shared' })
+
+//--------------------------------------------------------------------------------------------
+//
+// Setup Validator and Register Shared Types
+//
+//--------------------------------------------------------------------------------------------
+
+const ajv = addFormats(new Ajv({}), [...])
+  .addKeyword('kind')
+  .addKeyword('modifier')
+  .addSchema(Shared) // <-- Register Shared Types
+
+//--------------------------------------------------------------------------------------------
+//
+// Create a TypeBox type
+//
+//--------------------------------------------------------------------------------------------
+
+const User = Type.Object({
+  userId: Type.Ref(Shared, 'UserId'),
+  email:  Type.Ref(Shared, 'Email'),
+  online: Type.Boolean()
+}, { additionalProperties: false })
+
+//--------------------------------------------------------------------------------------------
+//
+// Validate Data
+//
+//--------------------------------------------------------------------------------------------
+
+const ok = ajv.validate(User, { 
+    userId: '68b4b1d8-0db6-468d-b551-02069a692044', 
+    email:  'dave@domain.com',
+    online: true
+}) // -> ok
+
+```
+
+Please refer to the official AJV [documentation](https://ajv.js.org/guide/getting-started.html) for additional information.
+
+### OpenAPI
+
+TypeBox can be used to create schemas for OpenAPI, however users should be aware of the various differences between the JSON Schema and OpenAPI specifications. Two common instances where OpenAPI diverges from the JSON Schema specification is OpenAPI's handling of `string enum` and `nullable`. The following shows how you can use TypeBox to construct these types.
+
+```typescript
+import { Type, Static, TNull, TLiteral, TUnion, TSchema } from '@sinclair/typebox'
+
+//--------------------------------------------------------------------------------------------
+//
+// Nullable<T>
+//
+//--------------------------------------------------------------------------------------------
+
+function Nullable<T extends TSchema>(schema: T): TUnion<[T, TNull]> {
+    return { ...schema, nullable: true } as any
+}
+
+const T = Nullable(Type.String())        // const T = {
+                                         //   type: 'string',
+                                         //   nullable: true
+                                         // }
+
+type T = Static<typeof T>                // type T = string | null
+
+//--------------------------------------------------------------------------------------------
+//
+// StringUnion<[...]>
+//
+//--------------------------------------------------------------------------------------------
+
+type IntoStringUnion<T> = {[K in keyof T]: T[K] extends string ? TLiteral<T[K]>: never }
+
+function StringUnion<T extends string[]>(values: [...T]): TUnion<IntoStringUnion<T>> {
+    return { enum: values } as any
+}
+
+const T = StringUnion(['A', 'B', 'C'])   // const T = {
+                                         //    enum: ['A', 'B', 'C']
+                                         // }
+
+type T = Static<typeof T>                // type T = 'A' | 'B' | 'C'
+```

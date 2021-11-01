@@ -1,4 +1,4 @@
-import { Type, Static } from '@sinclair/typebox'
+import { Type, Static } from '../../src/typebox'
 
 const T0 = Type.Object({
     a: Type.Optional(Type.Number()),
@@ -6,7 +6,7 @@ const T0 = Type.Object({
     c: Type.ReadonlyOptional(Type.Boolean()),
     d: Type.Hidden(Type.String()),
 })
-const F0 = (arg: Static<typeof T0>) => {}
+const F0 = (arg: Static<typeof T0>) => { }
 
 F0({
     b: 'hello',

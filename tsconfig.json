@@ -7,7 +7,9 @@
     "lib": ["ESNext"],
     "baseUrl": ".",
     "paths": {
-      "@sinclair/typebox": ["src/typebox.ts"]
+      "@sinclair/typebox": [
+        "src/typebox.ts"
+      ]
     }
   }
 }

@@ -1,12 +1,84 @@
+## [0.20.1](https://www.npmjs.com/package/@sinclair/typebox/v/0.20.1)
+
+Updates:
+
+- TypeBox mandates TypeScript compiler version `4.3.5` and above.
+
+## [0.20.0](https://www.npmjs.com/package/@sinclair/typebox/v/0.20.0)
+
+Updates:
+
+- Function `Type.Rec(...)` signature change.
+- Minor documentation updates.
+
+Notes:
+
+The `Type.Rec(...)` function signature has been changed to allow passing the `$id` as a custom option. This is to align `Type.Rec(...)` with other functions that accept `$id` as an option. `Type.Rec(...)` can work with or without an explicit `$id`, but it is recommend to specify one if the recursive type is nested in an outer schema.
+
+```typescript
+const Node = Type.Rec(Self => Type.Object({
+    id: Type.String(),
+    nodes: Type.Array(Self)
+}), { $id: 'Node' })
+```
+
+## [0.19.0](https://www.npmjs.com/package/@sinclair/typebox/v/0.19.0)
+
+Updates:
+
+- Function `Type.Box(...)` removes `$id` parameter as first argument.
+- Function `Type.Ref(...)` is now overloaded to support referencing `Type.Box(...)` and `TSchema`.
+
+Notes:
+
+This update changes the signature of `Type.Box(...)` and removes the explicit `$id` passing on the first parameter. The `$id` must be passed as an option if the caller wants to reference that type.
+
+```typescript
+const T = Type.String({ $id: 'T' })
+
+const B = Type.Box({ T }, { $id: 'B' })
+
+const R1 = Type.Ref(T)                   // const R1 = { $ref: 'T' }
+
+const R2 = Type.Ref(B, 'T')              // const R2 = { $ref: 'B#/definitions/T' }
+```
+
+## [0.18.1](https://www.npmjs.com/package/@sinclair/typebox/v/0.18.1)
+
+- Function `Type.Enum(...)` now expressed with `anyOf`. This to remove the `allowUnionTypes` configuration required to use `enum` with in AJV strict.
+- Function `Type.Rec(...)` now takes a required `$id` as the first parameter.
+- Function `Type.Strict(...)` no longer includes a `$schema`. Callers can now optionally pass `CustomOptions` on `Type.Strict(...)`
+
+## [0.18.0](https://www.npmjs.com/package/@sinclair/typebox/v/0.18.0)
+
+Changes:
+
+- Function `Type.Intersect(...)` is now implemented with `allOf` and constrained with `unevaluatedProperties` (draft `2019-09`)
+- Function `Type.Dict(...)` has been deprecated and replaced with `Type.Record(...)`.
+- Function `Type.Strict(...)` now includes the `$schema` property referencing the `2019-09` draft.
+
+### Type.Intersect(...)
+
+TypeBox now targets JSON schema draft `2019-09` for expressing `Type.Intersect(...)`. This is now expressed via `allOf` with additionalProperties constrained with `unevaluatedProperties`. Note that `unevaluatedProperties` is a feature of the `2019-09` specification.
+
+### Type.Record(K, V)
+
+TypeBox has deprecated `Type.Dict(...)` in favor of the more generic `Type.Record(...)`. Where as `Type.Dict(...)` was previously expressed with `additionalProperties: { ... }`, `Type.Record(...)` is expressed with `patternProperties` and supports both `string` and `number` indexer keys. Additionally, `Type.Record(...)` supports string union arguments. This is analogous to TypeScript's utility record type `Record<'a' | 'b' | 'c', T>`.
 
 ## [0.17.7](https://www.npmjs.com/package/@sinclair/typebox/v/0.17.7)
+
+Changes:
 
 - Added optional `$id` argument on `Type.Rec()`.
 - Documentation updates.
 
 ## [0.17.6](https://www.npmjs.com/package/@sinclair/typebox/v/0.17.6)
 
+Changes:
+
 - Added `Type.Rec(...)` function.
+
+Notes:
 
 This update introduces the `Type.Rec()` function for enabling Recursive Types. Please note that due to current inference limitations in TypeScript, TypeBox is unable to infer the type and resolves inner types to `any`. 
 
@@ -59,7 +131,11 @@ This functionality is flagged as `EXPERIMENTAL` and awaits community feedback.
 
 ## [0.17.4](https://www.npmjs.com/package/@sinclair/typebox/v/0.17.4)
 
+Changes:
+
 - Added `Type.Box()` and `Type.Ref()` functions.
+
+Notes:
 
 This update provides the `Type.Box()` function to enable common related schemas to grouped under a common namespace; typically expressed as a `URI`. This functionality is primarily geared towards allowing one to define a common set of domain objects that may be shared across application domains running over a network. The `Type.Box()` is intended to be an analog to `XML` `xmlns` namespacing.
 

@@ -1,10 +1,10 @@
 import { Type, Static } from '@sinclair/typebox'
 
-const Box = Type.Box('foo', {
-    Foo: Type.String()
-})
+const Node = Type.Rec(Self => Type.Object({
+    nodeId: Type.String(),
+    nodes: Type.Array(Self)
+}, { additionalProperties: false }), { $id: 'Node' })
 
-const Foo = Type.Ref(Box, 'Foo')
 
-type Foo = Static<typeof Foo>
+
 
